@@ -12,7 +12,7 @@
 
 | 仓库 | 平台 | 地址 |
 |------|------|------|
-| **zeronews**（原仓库） | 懒猫云（LazyCat Cloud） | https://github.com/srfj/zeronews |
+| **zeronews-lzcapp**（原仓库） | 懒猫云（LazyCat Cloud） | https://github.com/lazycat-contrib/zeronews-lzcapp |
 
 > 懒猫云版本以 Docker 镜像 + `lzc-manifest.yml` 清单形式发布；本仓库则是面向群晖 DSM 的
 > 原生二进制套件，二者共用同一份 ZeroNews 客户端二进制与同一套认证 Token。
@@ -34,7 +34,7 @@ ZeroNews（零讯）是一个边缘云内网穿透平台，通过自研高性能
 |------|------|
 | **群晖 DSM 6.2+** | x86_64（Intel / AMD）机型，本仓库目标平台 |
 | Windows / macOS / Linux | 见 ZeroNews 官网客户端 |
-| 懒猫云 | 见[原仓库](https://github.com/srfj/zeronews) |
+| 懒猫云 | 见[原仓库](https://github.com/lazycat-contrib/zeronews-lzcapp) |
 
 ## 前置要求
 
@@ -164,7 +164,7 @@ sudo /var/packages/zeronews/target/bin/zeronews \
 
 - **ZeroNews 官网**：https://zeronews.cc
 - **用户登录 / 获取 Token**：https://user.zeronews.cc/login
-- **懒猫云版本（原仓库）**：https://github.com/srfj/zeronews
+- **懒猫云版本（原仓库 zeronews-lzcapp）**：https://github.com/lazycat-contrib/zeronews-lzcapp
 - **群晖开发者文档**：https://help.synology.com/developer-guide/
 
 ## 许可证
