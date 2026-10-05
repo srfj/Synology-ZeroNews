@@ -1,0 +1,14 @@
+{
+  ".url": {
+    "com.zeronews.packages.zeronews": {
+      "title": "ZeroNews",
+      "desc": "ZeroNews 零讯客户端：查看运行状态与运行日志",
+      "icon": "images/zeronews-{0}.png",
+      "type": "url",
+      "url": "/webman/3rdparty/zeronews/index.html",
+      "allUsers": true,
+      "grantPrivilege": "all",
+      "advanceGrantPrivilege": true
+    }
+  }
+}

@@ -1,0 +1,50 @@
+#!/bin/sh
+# ZeroNews 群晖套件 - 安装后脚本
+#
+# 安装向导 (WIZARD_UIFILES/install_uifile) 中填写的字段，会以“字段 key”同名的
+# 环境变量传入本脚本，因此 Token 通过环境变量 $zeronews_token 获取。
+
+PKG_NAME="zeronews"
+PKG_DIR="/var/packages/${PKG_NAME}/target"
+VAR_DIR="/var/packages/${PKG_NAME}/var"
+BIN="${PKG_DIR}/bin/zeronews"
+
+mkdir -p "${VAR_DIR}/logs" "${PKG_DIR}/ui/data" 2>/dev/null
+
+if [ ! -f "${BIN}" ]; then
+    echo "错误：找不到 ZeroNews 客户端 ${BIN}，套件安装不完整。"
+    exit 1
+fi
+
+chmod 0755 "${BIN}" 2>/dev/null
+
+TOKEN="${zeronews_token:-}"
+
+if [ -z "${TOKEN}" ]; then
+    echo "警告：未填写 ZeroNews Token。套件已安装，但尚未绑定账号。"
+    echo "请卸载后重新安装并填写 Token，或在 NAS 上执行："
+    echo "  ${BIN} --workdir ${VAR_DIR} authtoken <你的Token>"
+    exit 0
+fi
+
+# 注意一：zeronews authtoken 即使认证失败也返回 0，无法用退出码判断，
+#         必须读取 status --json 里的 configured 字段来确认是否绑定成功。
+# 注意二：若把输出重定向到不存在的目录，整条命令会直接不执行（曾因此导致
+#         Token 根本没绑定却“安装成功”），所以这里先确保日志目录存在，
+#         并保留不做重定向的退路。
+if [ -d "${VAR_DIR}/logs" ]; then
+    "${BIN}" --workdir "${VAR_DIR}" authtoken "${TOKEN}" >"${VAR_DIR}/logs/authtoken.log" 2>&1
+else
+    "${BIN}" --workdir "${VAR_DIR}" authtoken "${TOKEN}" >/dev/null 2>&1
+fi
+
+if "${BIN}" --workdir "${VAR_DIR}" status --json 2>/dev/null \
+        | grep -qE '"configured"[[:space:]]*:[[:space:]]*true'; then
+    echo "ZeroNews Token 认证成功，账号已绑定。"
+else
+    echo "警告：ZeroNews Token 认证失败，请确认 Token 是否正确。"
+    echo "认证日志：${VAR_DIR}/logs/authtoken.log"
+    echo "套件仍会继续安装，可修正 Token 后重新安装覆盖。"
+fi
+
+exit 0

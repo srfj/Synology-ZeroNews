@@ -1,0 +1,21 @@
+[
+  {
+    "step_title": "ZeroNews 认证配置",
+    "items": [
+      {
+        "type": "textfield",
+        "desc": "请输入 ZeroNews 认证 Token。登录 https://user.zeronews.cc 后，在 Token 页面复制您的认证令牌。该 Token 也可以在安装完成后，通过重新安装套件进行修改。",
+        "subitems": [
+          {
+            "key": "zeronews_token",
+            "desc": "ZeroNews Token",
+            "defaultValue": "",
+            "validator": {
+              "allowBlank": false
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

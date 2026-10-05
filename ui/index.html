@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZeroNews 运行状态</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 18px 20px 28px;
+    font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    color: #1f2933; background: #f7f8fa;
+  }
+  h1 { font-size: 17px; margin: 0 0 2px; display: flex; align-items: center; gap: 8px; }
+  .sub { color: #7b8794; font-size: 12px; margin-bottom: 16px; }
+  .cards { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+  .card {
+    flex: 1 1 150px; min-width: 150px; background: #fff; border: 1px solid #e4e7eb;
+    border-radius: 8px; padding: 10px 14px;
+  }
+  .card .k { color: #7b8794; font-size: 12px; }
+  .card .v { font-size: 16px; font-weight: 600; margin-top: 2px; }
+  .ok { color: #0b8a3e; } .bad { color: #c0392b; } .idle { color: #7b8794; }
+  .bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .bar h2 { font-size: 14px; margin: 0; }
+  .bar .tools { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #616e7c; }
+  button {
+    font: inherit; font-size: 12px; padding: 4px 12px; cursor: pointer;
+    background: #fff; border: 1px solid #cbd2d9; border-radius: 5px; color: #1f2933;
+  }
+  button:hover { background: #f0f4f8; }
+  pre {
+    margin: 0; padding: 12px; height: 330px; overflow: auto;
+    background: #1f2933; color: #e4e7eb; border-radius: 8px;
+    font: 12px/1.55 ui-monospace, Menlo, Consolas, "Courier New", monospace;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  .err { color: #c0392b; }
+  .eps { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e4e7eb;
+         border-radius: 8px; overflow: hidden; font-size: 13px; margin-bottom: 14px; }
+  .eps th, .eps td { text-align: left; padding: 7px 12px; border-bottom: 1px solid #eef1f4; }
+  .eps th { background: #f7f8fa; color: #616e7c; font-weight: 600; }
+  .eps tr:last-child td { border-bottom: none; }
+</style>
+</head>
+<body>
+
+<h1>ZeroNews 零讯客户端</h1>
+<div class="sub" id="updated">正在读取状态…</div>
+
+<div class="cards">
+  <div class="card"><div class="k">服务状态</div><div class="v idle" id="svc">—</div></div>
+  <div class="card"><div class="k">账号绑定</div><div class="v idle" id="acct">—</div></div>
+  <div class="card"><div class="k">云端连接</div><div class="v idle" id="conn">—</div></div>
+  <div class="card"><div class="k">隧道数量</div><div class="v idle" id="eps">—</div></div>
+</div>
+
+<table class="eps" id="epTable" style="display:none">
+  <thead><tr><th>隧道名称</th><th>本地地址</th><th>公网地址</th><th>状态</th></tr></thead>
+  <tbody id="epBody"></tbody>
+</table>
+
+<div class="bar">
+  <h2>运行日志</h2>
+  <div class="tools">
+    <span id="logHint"></span>
+    <button id="refresh">刷新</button>
+  </div>
+</div>
+<pre id="log">加载中…</pre>
+
+<script>
+(function () {
+  var BASE = "data/";                     // 与页面同源：/webman/3rdparty/zeronews/data/
+  var timer = null;
+
+  function setText(id, text, cls) {
+    var el = document.getElementById(id);
+    el.textContent = text;
+    el.className = "v " + (cls || "idle");
+  }
+
+  function yn(v, yes, no) { return v ? yes : no; }
+
+  function renderStatus(s) {
+    if (!s) { return; }
+    var st = (s.status && typeof s.status === "object") ? s.status : {};
+    var running = !!s.running;
+    setText("svc", running ? "运行中" + (s.pid ? "（PID " + s.pid + "）" : "") : "已停止",
+            running ? "ok" : "bad");
+    setText("acct", yn(st.configured, "已绑定", "未绑定"), st.configured ? "ok" : "bad");
+    setText("conn", yn(st.connected, "已连接", "未连接"), st.connected ? "ok" : "bad");
+    setText("eps", (st.endpoint_count != null ? st.endpoint_count : 0) + " 条", "idle");
+    document.getElementById("updated").textContent =
+      "数据更新于 " + (s.updated || "—") + (running ? "" : "（服务未运行）");
+
+    var items = (s.endpoints && s.endpoints.items) || [];
+    var tbl = document.getElementById("epTable");
+    var body = document.getElementById("epBody");
+    if (items.length) {
+      body.innerHTML = "";
+      items.forEach(function (it) {
+        var tr = document.createElement("tr");
+        [it.name || it.endpoint_id || "-",
+         it.local_addr || it.local || "-",
+         it.public_addr || it.public_url || it.url || "-",
+         it.status || it.state || "-"].forEach(function (v) {
+          var td = document.createElement("td");
+          td.textContent = String(v);
+          tr.appendChild(td);
+        });
+        body.appendChild(tr);
+      });
+      tbl.style.display = "";
+    } else {
+      tbl.style.display = "none";
+    }
+  }
+
+  function load() {
+    fetch(BASE + "status.json?t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) { if (!r.ok) { throw new Error("HTTP " + r.status); } return r.json(); })
+      .then(function (j) { renderStatus(j); })
+      .catch(function (e) {
+        document.getElementById("updated").innerHTML =
+          '<span class="err">无法读取状态数据：' + e.message +
+          '（套件可能未在运行，或面板数据尚未生成）</span>';
+      });
+
+    fetch(BASE + "service.log?t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) { if (!r.ok) { throw new Error("HTTP " + r.status); } return r.text(); })
+      .then(function (t) {
+        var el = document.getElementById("log");
+        var atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 24;
+        el.textContent = t || "（暂无日志）";
+        if (atBottom) { el.scrollTop = el.scrollHeight; }
+      })
+      .catch(function (e) {
+        document.getElementById("log").innerHTML =
+          '<span class="err">无法读取运行日志：' + e.message + "</span>";
+      });
+  }
+
+  document.getElementById("refresh").addEventListener("click", load);
+  load();
+  timer = setInterval(load, 5000);
+  window.addEventListener("unload", function () { if (timer) { clearInterval(timer); } });
+})();
+</script>
+</body>
+</html>

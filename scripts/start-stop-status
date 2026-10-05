@@ -1,0 +1,130 @@
+#!/bin/sh
+# ZeroNews 群晖套件 - 服务启停控制脚本
+#
+# DSM 6.x 使用 systemd 以外的机制管理套件进程，因此这里直接以常驻前台进程方式
+# 启动 zeronews 客户端，并自行维护 pid 文件，而不是调用 `zeronews service install`
+# （后者依赖 systemd，DSM 6.2.3 上不可用）。
+
+PKG_NAME="zeronews"
+PKG_DIR="/var/packages/${PKG_NAME}/target"
+VAR_DIR="/var/packages/${PKG_NAME}/var"
+PKG_SCRIPTS="/var/packages/${PKG_NAME}/scripts"
+BIN="${PKG_DIR}/bin/zeronews"
+PIDFILE="${VAR_DIR}/zeronews.pid"
+LOGFILE="${VAR_DIR}/logs/service.log"
+UIPIDFILE="${VAR_DIR}/ui_publisher.pid"
+
+is_running() {
+    [ -f "${PIDFILE}" ] || return 1
+    _pid=$(cat "${PIDFILE}" 2>/dev/null)
+    [ -n "${_pid}" ] || return 1
+    kill -0 "${_pid}" 2>/dev/null
+}
+
+# 桌面面板数据生成进程：把状态/日志落成静态文件供 DSM web 服务读取
+start_ui_publisher() {
+    [ -x "${PKG_SCRIPTS}/ui-publish.sh" ] || return 0
+
+    if [ -f "${UIPIDFILE}" ]; then
+        _upid=$(cat "${UIPIDFILE}" 2>/dev/null)
+        if [ -n "${_upid}" ] && kill -0 "${_upid}" 2>/dev/null; then
+            "${PKG_SCRIPTS}/ui-publish.sh" >/dev/null 2>&1
+            return 0
+        fi
+    fi
+
+    "${PKG_SCRIPTS}/ui-publish.sh" >/dev/null 2>&1
+    nohup "${PKG_SCRIPTS}/ui-publish.sh" daemon >/dev/null 2>&1 &
+    echo $! > "${UIPIDFILE}"
+    return 0
+}
+
+stop_ui_publisher() {
+    if [ -f "${UIPIDFILE}" ]; then
+        _upid=$(cat "${UIPIDFILE}" 2>/dev/null)
+        if [ -n "${_upid}" ]; then
+            kill "${_upid}" 2>/dev/null
+            _i=0
+            while [ "${_i}" -lt 5 ]; do
+                kill -0 "${_upid}" 2>/dev/null || break
+                sleep 1
+                _i=$((_i + 1))
+            done
+            kill -9 "${_upid}" 2>/dev/null
+        fi
+        rm -f "${UIPIDFILE}"
+    fi
+    # 停止后再生成一次，让面板显示「已停止」
+    [ -x "${PKG_SCRIPTS}/ui-publish.sh" ] && "${PKG_SCRIPTS}/ui-publish.sh" >/dev/null 2>&1
+    return 0
+}
+
+start_service() {
+    if is_running; then
+        start_ui_publisher
+        return 0
+    fi
+    mkdir -p "${VAR_DIR}/logs"
+    cd "${PKG_DIR}" || return 1
+    HOME="${VAR_DIR}" nohup "${BIN}" --workdir "${VAR_DIR}" start >>"${LOGFILE}" 2>&1 &
+    echo $! > "${PIDFILE}"
+    sleep 2
+    if is_running; then
+        start_ui_publisher
+        return 0
+    fi
+    return 1
+}
+
+stop_service() {
+    _pid=""
+    if [ -f "${PIDFILE}" ]; then
+        _pid=$(cat "${PIDFILE}" 2>/dev/null)
+    fi
+
+    # 优先优雅退出
+    "${BIN}" --workdir "${VAR_DIR}" shutdown >/dev/null 2>&1
+
+    if [ -n "${_pid}" ]; then
+        _i=0
+        while [ "${_i}" -lt 10 ]; do
+            kill -0 "${_pid}" 2>/dev/null || break
+            sleep 1
+            _i=$((_i + 1))
+        done
+        if kill -0 "${_pid}" 2>/dev/null; then
+            kill "${_pid}" 2>/dev/null
+            sleep 2
+        fi
+        if kill -0 "${_pid}" 2>/dev/null; then
+            kill -9 "${_pid}" 2>/dev/null
+        fi
+    fi
+
+    rm -f "${PIDFILE}"
+    stop_ui_publisher
+    return 0
+}
+
+case "$1" in
+    start)
+        start_service
+        exit $?
+        ;;
+    stop)
+        stop_service
+        exit $?
+        ;;
+    status)
+        if is_running; then
+            exit 0
+        fi
+        exit 3
+        ;;
+    prestart|prestop)
+        exit 0
+        ;;
+    *)
+        exit 0
+        ;;
+esac

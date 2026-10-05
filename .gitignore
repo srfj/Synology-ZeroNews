@@ -1,0 +1,7 @@
+# 构建产物
+*.spk
+
+# 构建中间目录
+build/
+.payload/
+.cache/
