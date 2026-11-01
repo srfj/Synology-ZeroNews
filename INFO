@@ -1,5 +1,5 @@
 package="zeronews"
-version="4.0.8-0004"
+version="4.0.8-0005"
 description="ZeroNews (Lingxun) edge-cloud intranet penetration client. It exposes local services on your NAS to the internet securely and quickly over the self-developed zeronews tunnel protocol, without changing your network or installing a VPN. A ZeroNews auth token is required."
 description_chs="ZeroNews（零讯）边缘云内网穿透客户端。通过自研高性能 zeronews tunnel 协议，无需更改网络环境或安装 VPN，即可将 NAS 上的内网服务安全、快速地暴露到公网。使用前需准备 ZeroNews 认证 Token（在 https://user.zeronews.cc 获取）。"
 arch="apollolake avoton braswell broadwell broadwellnk broadwellntbap bromolow cedarview denverton dockerx64 geminilake grantley purley kvmx64 v1000 x86 x86_64"

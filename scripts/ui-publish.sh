@@ -15,8 +15,8 @@
 #   ui-publish.sh daemon   每 INTERVAL 秒生成一次，直到进程被终止
 #
 # 日志上限：客户端把每次本地 API 请求都写进 service.log（面板每 10 秒轮询一次，
-# 约 6 行/10 秒 ≈ 6MB/天）。这里在超过 LOG_MAX_BYTES 时就地截断，只保留最近
-# LOG_KEEP_LINES 行，避免长期运行把系统盘写满。
+# 约 6 行/10 秒 ≈ 6MB/天）。这里只保留最新 LOG_MAX_LINES 行并就地截断，
+# 与面板展示的 200 行一致，避免长期运行把系统盘写满。
 
 PKG_NAME="zeronews"
 PKG_DIR="/var/packages/${PKG_NAME}/target"
@@ -27,8 +27,7 @@ LOGFILE="${VAR_DIR}/logs/service.log"
 UI_DATA="${PKG_DIR}/ui/data"
 LAST_BODY="${VAR_DIR}/.ui-last.json"
 INTERVAL=10
-LOG_MAX_BYTES=2097152
-LOG_KEEP_LINES=1000
+LOG_MAX_LINES=200
 
 is_running() {
     [ -f "${PIDFILE}" ] || return 1
@@ -37,15 +36,15 @@ is_running() {
     kill -0 "${_p}" 2>/dev/null
 }
 
-# 日志超过上限时保留最近若干行并就地截断。
+# 日志超过 200 行时只保留最新 200 行，并就地截断。
 # 注意必须 `cat > LOGFILE` 而不是 mv：客户端以 >> 持续写同一个文件描述符，
 # 替换 inode 会让它继续写旧文件，导致日志从此“消失”。
 trim_log() {
     [ -f "${LOGFILE}" ] || return 0
-    _size=$(wc -c < "${LOGFILE}" 2>/dev/null | tr -d ' ')
-    [ -n "${_size}" ] && [ "${_size}" -gt "${LOG_MAX_BYTES}" ] || return 0
+    _lines=$(wc -l < "${LOGFILE}" 2>/dev/null | tr -d ' ')
+    [ -n "${_lines}" ] && [ "${_lines}" -gt "${LOG_MAX_LINES}" ] || return 0
     _tmp="${VAR_DIR}/.service.log.trim"
-    if tail -n "${LOG_KEEP_LINES}" "${LOGFILE}" > "${_tmp}" 2>/dev/null; then
+    if tail -n "${LOG_MAX_LINES}" "${LOGFILE}" > "${_tmp}" 2>/dev/null; then
         cat "${_tmp}" > "${LOGFILE}" 2>/dev/null
     fi
     rm -f "${_tmp}" 2>/dev/null
@@ -54,8 +53,6 @@ trim_log() {
 
 publish() {
     mkdir -p "${UI_DATA}" 2>/dev/null || return 0
-
-    trim_log
 
     _running=false
     _pid=0
@@ -93,6 +90,9 @@ publish() {
         fi
         rm -f "${UI_DATA}/.log.tmp" 2>/dev/null
     fi
+
+    # 放在最后：本轮 status/endpoints 查询本身也会追加 6 行，最后截断才能稳定在 200 行
+    trim_log
 }
 
 case "${1:-once}" in
