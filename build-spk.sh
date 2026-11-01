@@ -6,7 +6,7 @@
 #
 # 用法：
 #   ./build-spk.sh
-#   PKG_BUILD=0003 ./build-spk.sh
+#   PKG_BUILD=0007 ./build-spk.sh
 #   ZERONEWS_CLIENT_VERSION=4.0.8 ./build-spk.sh     # 指定客户端（=套件）资源版本
 #
 # 说明：套件版本跟随客户端资源版本（INFO 的 version = 客户端版本-构建号），
@@ -22,7 +22,7 @@ REPO_ROOT="${SCRIPT_DIR}"
 
 ZERONEWS_CLIENT_VERSION="${ZERONEWS_CLIENT_VERSION:-4.0.8}"
 ZERONEWS_VERSION="${ZERONEWS_VERSION:-${ZERONEWS_CLIENT_VERSION}}"
-PKG_BUILD="${PKG_BUILD:-0005}"
+PKG_BUILD="${PKG_BUILD:-0007}"
 PKG_NAME="zeronews"
 SPK_ARCH="x86_64"
 CLIENT_ARCH_PATH="x86_x64"
