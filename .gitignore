@@ -5,3 +5,6 @@
 build/
 .payload/
 .cache/
+
+# 用户上传的临时文件
+.uploads/

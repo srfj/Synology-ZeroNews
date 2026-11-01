@@ -356,7 +356,70 @@ status)
 
 ---
 
-## 9. 常用排查命令
+## 9. Token 绑定的静默失败与自愈
+
+### 症状
+
+套件显示运行中，面板「账号绑定」为「未绑定」，客户端日志里是
+
+```
+Runtime   not configured
+· Client is running locally without auth configuration
+```
+
+设备不上线，SSH 手动执行一次 `zeronews authtoken` 后立刻恢复。
+
+### 原因
+
+- **命令行安装不弹向导**：`synopkg install` 不会显示 `install_uifile`，`postinst` 收到的
+  `$zeronews_token` 为空；升级安装同样可能跳过向导
+- **认证失败也返回 0**：`zeronews authtoken` 失败时退出码仍为 `0`，只靠退出码判断会
+  “安装成功”但实际没绑定
+- **失败后不会重试**：客户端以未配置模式常驻，之后不会自行重新认证
+
+### 解决
+
+1. `postinst` 先把握到的 Token 写入 `${VAR_DIR}/authtoken.pending`（`0600`），认证成功后删除
+2. `start-stop-status` 每次启动前读 `status --json` 的 `configured`，未绑定且存在 pending 时自动重试
+3. 未绑定时向 `service.log` 追加提示，面板日志里能直接看到
+4. 增加 `WIZARD_UIFILES/upgrade_uifile`，升级时也能填 Token（留空则保持现有绑定）
+
+### 排查要点
+
+```bash
+cat /var/log/packages/zeronews.log              # postinst 是否执行、输出是什么
+cat /var/packages/zeronews/var/logs/authtoken.log   # 认证失败原因
+od -c /var/packages/zeronews/var/authtoken.pending  # 确认写入的是真实 Token
+```
+
+- 用 `od -c` 而不是 `cat`：曾遇到文件里是 16 个空格或旧 Token，`cat` 看不出来
+- 写入用 `printf '%s' '<Token>'`，避免 `echo` 带来的额外换行
+- **同版本 `.spk` 重复安装会被 DSM 跳过**，`postinst` 不会执行，改完 Token 需先卸载或升构建号
+- DSM 卸载会删除 `/var/packages/<包名>/var`，绑定必然丢失，重装后需重新填 Token
+
+---
+
+## 10. 日志无限增长与就地轮转
+
+客户端会把每次本地 API 请求写进 stdout，被 `start-stop-status` 重定向到 `service.log`。
+面板每 10 秒轮询 `status` / `endpoints`，约 **6 行/10 秒 ≈ 6MB/天 ≈ 2GB/年**，
+长期运行会写满系统盘（不会立即崩溃，但属于慢性问题）。
+
+### 解决
+
+`scripts/ui-publish.sh` 在每轮发布结束时检查行数，超过 200 行只保留最新 200 行。
+
+### 两个关键细节
+
+- **必须就地截断**：用 `cat tmp > service.log`，不能用 `mv` 替换文件。客户端持有 `>>` 的
+  追加句柄，替换 inode 后它会继续写已删除的旧文件，日志从此“消失”
+- **截断放在一轮的最后**：本轮 `status`/`endpoints` 查询自身还会追加 6 行，放在开头会稳定在 206 行
+
+验证方法：灌入 3 万行后执行一次 `ui-publish.sh`，行数应为 200，且 `ls -i` 的 inode 不变。
+
+---
+
+## 11. 常用排查命令
 
 ```bash
 # 安装/卸载日志
@@ -388,7 +451,7 @@ sudo synogroup --del ZeroNews
 
 ---
 
-## 10. 检查清单
+## 12. 检查清单
 
 打包/发版前逐项确认：
 
@@ -402,3 +465,6 @@ sudo synogroup --del ZeroNews
 - [ ] 7 个尺寸的主菜单图标齐全
 - [ ] `package.tgz` 内包含 `ui/` 目录
 - [ ] `conf/privilege` 的 `run-as` 满足运行目录权限需求
+- [ ] `WIZARD_UIFILES` 同时包含 `install_uifile` 与 `upgrade_uifile`，key 均为 `zeronews_token`
+- [ ] `postinst` 认证失败时 Token 已写入 `authtoken.pending`，启动脚本会自动重试
+- [ ] `ui-publish.sh` 的日志轮转生效（`service.log` 稳定在 200 行，inode 不变）
