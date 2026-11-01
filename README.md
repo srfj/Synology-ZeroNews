@@ -50,14 +50,14 @@ ZeroNews（零讯）是一个边缘云内网穿透平台，通过自研高性能
 # 产物：zeronews-<版本>-<构建号>-x86_64.spk
 ```
 
-可通过环境变量指定版本号与构建号：
+可通过环境变量指定资源版本与构建号：
 
 ```bash
-ZERONEWS_VERSION=4.1.0 PKG_BUILD=0002 ./build-spk.sh
+ZERONEWS_CLIENT_VERSION=4.0.8 PKG_BUILD=0003 ./build-spk.sh
 ```
 
-套件版本与客户端二进制版本相互独立：`ZERONEWS_VERSION` 写入 `INFO`（决定 DSM 升级判定），
-`ZERONEWS_CLIENT_VERSION` 决定下载哪个客户端 tar（默认 `4.0.8`，官方源当前仅提供该版本）。
+套件版本跟随客户端资源版本，与 `zeronews status --json` 的 `resource_version` 一致
+（当前官方源仅提供 `4.0.8`）；同一资源版本的多次发布只递增构建号。
 
 构建脚本会完成以下工作：
 
@@ -75,7 +75,7 @@ ZERONEWS_VERSION=4.1.0 PKG_BUILD=0002 ./build-spk.sh
 命令行安装：
 
 ```bash
-sudo synopkg install /volume2/docker/zeronews-4.1.0-0002-x86_64.spk
+sudo synopkg install /volume2/docker/zeronews-4.0.8-0003-x86_64.spk
 ```
 
 命令行安装不会弹出向导，需手动指定 Token：写入待绑定文件后启动套件，启动时会自动认证并删除该文件。

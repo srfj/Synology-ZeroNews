@@ -6,11 +6,12 @@
 #
 # 用法：
 #   ./build-spk.sh
-#   ZERONEWS_VERSION=4.1.0 PKG_BUILD=0002 ./build-spk.sh
-#   ZERONEWS_CLIENT_VERSION=4.0.8 ./build-spk.sh     # 单独指定客户端二进制版本
+#   PKG_BUILD=0003 ./build-spk.sh
+#   ZERONEWS_CLIENT_VERSION=4.0.8 ./build-spk.sh     # 指定客户端（=套件）资源版本
 #
-# 说明：ZERONEWS_VERSION 是套件版本（写入 INFO），ZERONEWS_CLIENT_VERSION 决定
-# 下载哪个客户端 tar。官方源目前只提供 4.0.8，套件版本可高于客户端版本。
+# 说明：套件版本跟随客户端资源版本（INFO 的 version = 客户端版本-构建号），
+# 与 `zeronews status --json` 里的 resource_version 保持一致；同一客户端版本
+# 的多次发布只递增构建号。
 #
 # 产物：<repo>/zeronews-<version>-<build>-x86_64.spk
 
@@ -19,9 +20,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${SCRIPT_DIR}"
 
-ZERONEWS_VERSION="${ZERONEWS_VERSION:-4.1.0}"
 ZERONEWS_CLIENT_VERSION="${ZERONEWS_CLIENT_VERSION:-4.0.8}"
-PKG_BUILD="${PKG_BUILD:-0002}"
+ZERONEWS_VERSION="${ZERONEWS_VERSION:-${ZERONEWS_CLIENT_VERSION}}"
+PKG_BUILD="${PKG_BUILD:-0003}"
 PKG_NAME="zeronews"
 SPK_ARCH="x86_64"
 CLIENT_ARCH_PATH="x86_x64"
