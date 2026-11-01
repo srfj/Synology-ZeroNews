@@ -13,10 +13,10 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="${SCRIPT_DIR}"
 
 ZERONEWS_VERSION="${ZERONEWS_VERSION:-4.0.8}"
-PKG_BUILD="${PKG_BUILD:-0001}"
+PKG_BUILD="${PKG_BUILD:-0002}"
 PKG_NAME="zeronews"
 SPK_ARCH="x86_64"
 CLIENT_ARCH_PATH="x86_x64"
