@@ -21,7 +21,7 @@ REPO_ROOT="${SCRIPT_DIR}"
 
 ZERONEWS_VERSION="${ZERONEWS_VERSION:-4.1.0}"
 ZERONEWS_CLIENT_VERSION="${ZERONEWS_CLIENT_VERSION:-4.0.8}"
-PKG_BUILD="${PKG_BUILD:-0001}"
+PKG_BUILD="${PKG_BUILD:-0002}"
 PKG_NAME="zeronews"
 SPK_ARCH="x86_64"
 CLIENT_ARCH_PATH="x86_x64"
@@ -109,9 +109,9 @@ cp "${SCRIPT_DIR}/conf/privilege"           "${BUILD_DIR}/conf/privilege"
 cp "${SCRIPT_DIR}/scripts/postinst"         "${BUILD_DIR}/scripts/postinst"
 cp "${SCRIPT_DIR}/scripts/start-stop-status" "${BUILD_DIR}/scripts/start-stop-status"
 cp "${SCRIPT_DIR}/scripts/ui-publish.sh"    "${BUILD_DIR}/scripts/ui-publish.sh"
-cp "${SCRIPT_DIR}/WIZARD_UIFILES/install_uifile" "${BUILD_DIR}/WIZARD_UIFILES/install_uifile"
+cp "${SCRIPT_DIR}/WIZARD_UIFILES/"* "${BUILD_DIR}/WIZARD_UIFILES/"
 chmod 0755 "${BUILD_DIR}/scripts/postinst" "${BUILD_DIR}/scripts/start-stop-status" "${BUILD_DIR}/scripts/ui-publish.sh"
-chmod 0644 "${BUILD_DIR}/INFO" "${BUILD_DIR}/conf/privilege" "${BUILD_DIR}/WIZARD_UIFILES/install_uifile"
+chmod 0644 "${BUILD_DIR}/INFO" "${BUILD_DIR}/conf/privilege" "${BUILD_DIR}/WIZARD_UIFILES/"*
 
 # ---------------------------------------------------------------- 4. 图标
 info "准备套件图标"

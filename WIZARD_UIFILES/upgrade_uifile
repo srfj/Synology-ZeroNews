@@ -1,0 +1,21 @@
+[
+  {
+    "step_title": "ZeroNews 认证配置（升级）",
+    "items": [
+      {
+        "type": "textfield",
+        "desc": "如需重新绑定账号，请填写 ZeroNews 认证 Token（登录 https://user.zeronews.cc 后，在 Token 页面复制）。留空则保持现有绑定不变；填写后会在升级时重新认证。",
+        "subitems": [
+          {
+            "key": "zeronews_token",
+            "desc": "ZeroNews Token",
+            "defaultValue": "",
+            "validator": {
+              "allowBlank": true
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

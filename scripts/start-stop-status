@@ -13,12 +13,51 @@ BIN="${PKG_DIR}/bin/zeronews"
 PIDFILE="${VAR_DIR}/zeronews.pid"
 LOGFILE="${VAR_DIR}/logs/service.log"
 UIPIDFILE="${VAR_DIR}/ui_publisher.pid"
+PENDING_TOKEN="${VAR_DIR}/authtoken.pending"
 
 is_running() {
     [ -f "${PIDFILE}" ] || return 1
     _pid=$(cat "${PIDFILE}" 2>/dev/null)
     [ -n "${_pid}" ] || return 1
     kill -0 "${_pid}" 2>/dev/null
+}
+
+is_configured() {
+    [ -f "${BIN}" ] || return 1
+    "${BIN}" --workdir "${VAR_DIR}" status --json 2>/dev/null \
+        | grep -qE '"configured"[[:space:]]*:[[:space:]]*true'
+}
+
+# 安装阶段若因网络/DNS 未就绪导致 Token 认证失败，postinst 会把 Token 暂存在
+# authtoken.pending；这里在每次启动前重试，绑定成功后删除，避免设备一直不上线。
+bind_pending_token() {
+    [ -f "${PENDING_TOKEN}" ] || return 0
+    if is_configured; then
+        rm -f "${PENDING_TOKEN}"
+        return 0
+    fi
+    _tok=$(cat "${PENDING_TOKEN}" 2>/dev/null)
+    [ -n "${_tok}" ] || return 0
+    mkdir -p "${VAR_DIR}/logs" 2>/dev/null
+    if [ -d "${VAR_DIR}/logs" ]; then
+        "${BIN}" --workdir "${VAR_DIR}" authtoken "${_tok}" \
+            >>"${VAR_DIR}/logs/authtoken.log" 2>&1
+    else
+        "${BIN}" --workdir "${VAR_DIR}" authtoken "${_tok}" >/dev/null 2>&1
+    fi
+    if is_configured; then
+        rm -f "${PENDING_TOKEN}"
+    fi
+    return 0
+}
+
+# 未绑定时在面板日志里明确提示，避免“服务运行中但设备不上线”无从排查
+warn_if_unconfigured() {
+    is_configured && return 0
+    printf '%s 警告：客户端尚未绑定 ZeroNews Token，云端不会上线。\n' \
+        "$(date '+%Y-%m-%d %H:%M:%S')" >>"${LOGFILE}"
+    printf '%s 绑定方式：echo "<你的Token>" > %s && chmod 600 %s，然后重启套件（启动时自动认证）。\n' \
+        "$(date '+%Y-%m-%d %H:%M:%S')" "${PENDING_TOKEN}" "${PENDING_TOKEN}" >>"${LOGFILE}"
 }
 
 # 桌面面板数据生成进程：把状态/日志落成静态文件供 DSM web 服务读取
@@ -65,6 +104,8 @@ start_service() {
         return 0
     fi
     mkdir -p "${VAR_DIR}/logs"
+    bind_pending_token
+    warn_if_unconfigured
     cd "${PKG_DIR}" || return 1
     HOME="${VAR_DIR}" nohup "${BIN}" --workdir "${VAR_DIR}" start >>"${LOGFILE}" 2>&1 &
     echo $! > "${PIDFILE}"

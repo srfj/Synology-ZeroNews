@@ -75,8 +75,19 @@ ZERONEWS_VERSION=4.1.0 PKG_BUILD=0002 ./build-spk.sh
 命令行安装：
 
 ```bash
-sudo synopkg install /volume2/docker/zeronews-4.0.8-0006-x86_64.spk
+sudo synopkg install /volume2/docker/zeronews-4.1.0-0002-x86_64.spk
 ```
+
+命令行安装不会弹出向导，需手动指定 Token：写入待绑定文件后启动套件，启动时会自动认证并删除该文件。
+
+```bash
+echo '<你的Token>' | sudo tee /var/packages/zeronews/var/authtoken.pending >/dev/null
+sudo chmod 600 /var/packages/zeronews/var/authtoken.pending
+sudo synopkg start zeronews
+```
+
+> 安装/升级时若因网络未就绪导致认证失败，Token 会暂存在 `authtoken.pending`（仅 root 可读），
+> 每次启动自动重试，绑定成功后删除；未绑定时面板日志里也会给出绑定提示。
 
 ## 使用
 
