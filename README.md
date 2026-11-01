@@ -53,8 +53,11 @@ ZeroNews（零讯）是一个边缘云内网穿透平台，通过自研高性能
 可通过环境变量指定版本号与构建号：
 
 ```bash
-ZERONEWS_VERSION=4.0.8 PKG_BUILD=0006 ./build-spk.sh
+ZERONEWS_VERSION=4.1.0 PKG_BUILD=0002 ./build-spk.sh
 ```
+
+套件版本与客户端二进制版本相互独立：`ZERONEWS_VERSION` 写入 `INFO`（决定 DSM 升级判定），
+`ZERONEWS_CLIENT_VERSION` 决定下载哪个客户端 tar（默认 `4.0.8`，官方源当前仅提供该版本）。
 
 构建脚本会完成以下工作：
 

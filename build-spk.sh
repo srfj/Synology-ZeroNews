@@ -6,7 +6,11 @@
 #
 # 用法：
 #   ./build-spk.sh
-#   ZERONEWS_VERSION=4.0.8 PKG_BUILD=0002 ./build-spk.sh
+#   ZERONEWS_VERSION=4.1.0 PKG_BUILD=0002 ./build-spk.sh
+#   ZERONEWS_CLIENT_VERSION=4.0.8 ./build-spk.sh     # 单独指定客户端二进制版本
+#
+# 说明：ZERONEWS_VERSION 是套件版本（写入 INFO），ZERONEWS_CLIENT_VERSION 决定
+# 下载哪个客户端 tar。官方源目前只提供 4.0.8，套件版本可高于客户端版本。
 #
 # 产物：<repo>/zeronews-<version>-<build>-x86_64.spk
 
@@ -15,13 +19,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="${SCRIPT_DIR}"
 
-ZERONEWS_VERSION="${ZERONEWS_VERSION:-4.0.8}"
-PKG_BUILD="${PKG_BUILD:-0002}"
+ZERONEWS_VERSION="${ZERONEWS_VERSION:-4.1.0}"
+ZERONEWS_CLIENT_VERSION="${ZERONEWS_CLIENT_VERSION:-4.0.8}"
+PKG_BUILD="${PKG_BUILD:-0001}"
 PKG_NAME="zeronews"
 SPK_ARCH="x86_64"
 CLIENT_ARCH_PATH="x86_x64"
 DOWNLOAD_BASE="${ZERONEWS_DOWNLOAD_BASE:-https://download.v2.zeronews.cc}"
-CLIENT_TARBALL="zeronews-linux-${ZERONEWS_VERSION}.tar"
+CLIENT_TARBALL="zeronews-linux-${ZERONEWS_CLIENT_VERSION}.tar"
 
 BUILD_DIR="${SCRIPT_DIR}/build"
 PAYLOAD_DIR="${SCRIPT_DIR}/.payload"
@@ -72,7 +77,7 @@ if command -v file >/dev/null 2>&1; then
         || die "客户端架构与目标 (x86_64) 不匹配"
 fi
 
-echo "zeronews ${ZERONEWS_VERSION}" > "${PAYLOAD_DIR}/VERSION"
+echo "zeronews ${ZERONEWS_CLIENT_VERSION}" > "${PAYLOAD_DIR}/VERSION"
 
 # 桌面 UI：DSM 按 INFO 的 dsmuidir 把 target/ui 链接到
 # /usr/syno/synoman/webman/3rdparty/<包名>，主菜单图标由此出现
